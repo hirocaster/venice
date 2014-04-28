@@ -29,7 +29,7 @@ module Venice
     end
 
     def verify!(data, options = {})
-      json = json_response_from_verifying_data(data)
+      json = json_response_from_verifying_data(data, options)
       status, receipt_attributes = json['status'].to_i, json['receipt']
 
       case status
@@ -52,7 +52,7 @@ module Venice
 
     private
 
-    def json_response_from_verifying_data(data)
+    def json_response_from_verifying_data(data, proxy_host: nil, proxy_port: nil)
       parameters = {
         'receipt-data' => data
       }
@@ -60,7 +60,14 @@ module Venice
       parameters['password'] = @shared_secret if @shared_secret
 
       uri = URI(@verification_url)
-      http = Net::HTTP.new(uri.host, uri.port)
+
+      if proxy_host && proxy_port
+        proxy_class = Net::HTTP::Proxy(proxy_host, proxy_port)
+        http = proxy_class.new(uri.host, uri.port)
+      else
+        http = Net::HTTP.new(uri.host, uri.port)
+      end
+
       http.use_ssl = true
       http.verify_mode = OpenSSL::SSL::VERIFY_PEER
 
